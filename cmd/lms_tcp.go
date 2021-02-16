@@ -86,7 +86,7 @@ func main() {
 		done <- true
 	}()
 
-	server := rtltcp.MakeRTLTCPServer(addr)
+	server = rtltcp.MakeRTLTCPServer(addr)
 	server.SetDongleInfo(rtltcp.DongleInfo{
 		TunerType:      rtltcp.RtlsdrTunerUnknown,
 		TunerGainCount: 64,
@@ -103,6 +103,8 @@ func main() {
 		case rtltcp.SetAgcMode:
 		case rtltcp.SetBiasTee:
 		case rtltcp.SetGain:
+		case rtltcp.SetGainMode:
+
 		case rtltcp.SetFrequency:
 			frequency := binary.BigEndian.Uint32(cmd.Param[:])
 			fmt.Printf("Setting frequency to %d\n", frequency)
@@ -110,10 +112,10 @@ func main() {
 			return true
 		default:
 			fmt.Printf("Command %s not handled!\n", cmd.Type)
-			return false
+			return true
 		}
 
-		return false
+		return true
 	})
 	server.SetOnConnect(func(sessionId string, address string) {
 		fmt.Printf("New connection from %s [%s]\n", address, sessionId)

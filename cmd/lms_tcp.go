@@ -88,7 +88,7 @@ func main() {
 
 	server = rtltcp.MakeRTLTCPServer(addr)
 	server.SetDongleInfo(rtltcp.DongleInfo{
-		TunerType:      rtltcp.RtlsdrTunerUnknown,
+		TunerType:      rtltcp.RtlsdrTunerR820t,
 		TunerGainCount: 64,
 	})
 	server.SetOnCommand(func(sessionId string, cmd rtltcp.Command) bool {
@@ -103,6 +103,10 @@ func main() {
 		case rtltcp.SetAgcMode:
 		case rtltcp.SetBiasTee:
 		case rtltcp.SetGain:
+			gain := binary.BigEndian.Uint32(cmd.Param[:])
+			gainU := uint(gain / 10)
+			fmt.Printf("Setting gain to %d\n", gainU)
+			dev.SetGainDB(*channel, true, gainU)
 		case rtltcp.SetGainMode:
 
 		case rtltcp.SetFrequency:

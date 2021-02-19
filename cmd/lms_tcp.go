@@ -16,13 +16,13 @@ import (
 var listenAddress = flag.String("a", "", "listen address")
 var listenPort = flag.Int("p", 1234, "listen port (default: 1234)")
 var gain = flag.Int("g", 0, "gain (default: 0 for auto)")
-var sampleRate = flag.Int("s", 2048000, "samplerate in Hz (default: 2048000 Hz)")
+var sampleRate = flag.Int("s", 2048000, "sample rate in Hz (default: 2048000 Hz)")
 var maxBuffers = flag.Int("b", -1, "number of buffers (kept for compatibility, ignored here)")
 var deviceIndex = flag.Int("d", 0, "device index (default: 0)")
-var oversampling = flag.Int("ov", 8, "oversampling (default: 8)")
+var oversampling = flag.Int("ov", 16, "oversampling (default: 8)")
 var antennaName = flag.String("antenna", "LNAL", "antenna name (default: LNAL)")
 var channel = flag.Int("channel", 0, "channel number (default: 0)")
-var lpf = flag.Int("lpf", 2500000, "low pass filter (default 2500000)")
+var lpf = flag.Int("lpf", 3000000, "low pass filter (default 2500000)")
 
 var server *rtltcp.Server
 
@@ -30,13 +30,7 @@ var tunerValues []int
 
 func init() {
 	for i := 0; i < 32; i++ {
-		tunerValues = append(tunerValues, i*6)
-	}
-}
-
-func OnSamples(samples []complex64, _ int, _ uint64) {
-	if server != nil {
-		server.ComplexBroadcast(samples)
+		tunerValues = append(tunerValues, int(float32(i)*2.5))
 	}
 }
 
@@ -71,7 +65,6 @@ func main() {
 
 	dev.SetI16CallbackMode(true)
 	dev.SetI16Callback(OnSamples16)
-	dev.SetCallback(OnSamples)
 
 	dev.SetSampleRate(float64(*sampleRate), *oversampling)
 

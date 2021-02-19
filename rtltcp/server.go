@@ -88,15 +88,15 @@ func (server *Server) Stop() {
 }
 
 func (server *Server) I16Broadcast(data []int16) {
-	if server.bufferFifo.Len()+len(data) > maxFifoLength {
-		// Discard data
-		_ = server.bufferFifo.NextN(len(data))
+	if server.bufferFifo.Len() > maxFifoLength {
+		// Discard one buffer
+		_ = server.bufferFifo.Next()
 	}
 
 	iqBytes := make([]byte, len(data))
 	for i := 0; i < len(data)/2; i++ {
-		rv := data[i*2] >> 8
-		iv := data[i*2+1] >> 8
+		rv := 128 + (data[i*2] / 127)
+		iv := 128 + (data[i*2+1] / 127)
 		iqBytes[i*2] = uint8(rv)
 		iqBytes[i*2+1] = uint8(iv)
 	}
@@ -105,9 +105,9 @@ func (server *Server) I16Broadcast(data []int16) {
 }
 
 func (server *Server) ComplexBroadcast(data []complex64) {
-	if server.bufferFifo.Len()+len(data) > maxFifoLength {
-		// Discard data
-		_ = server.bufferFifo.NextN(len(data))
+	if server.bufferFifo.Len() > maxFifoLength {
+		// Discard one buffer
+		_ = server.bufferFifo.Next()
 	}
 
 	iqBytes := make([]byte, len(data)*2)

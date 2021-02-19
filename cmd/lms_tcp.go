@@ -30,7 +30,7 @@ var tunerValues []int
 
 func init() {
 	for i := 0; i < 32; i++ {
-		tunerValues = append(tunerValues, i*4)
+		tunerValues = append(tunerValues, i*6)
 	}
 }
 
@@ -112,18 +112,18 @@ func main() {
 		case rtltcp.SetBiasTee:
 		case rtltcp.SetGain:
 			gain := binary.BigEndian.Uint32(cmd.Param[:])
-			gainU := uint(gain / 10)
+			gainU := uint(gain / 4)
 			fmt.Printf("Setting gain to %d\n", gainU)
 			dev.SetGainDB(*channel, true, gainU)
 		case rtltcp.SetGainMode:
 		case rtltcp.SetTunerGainByIndex:
 			gainIdx := binary.BigEndian.Uint32(cmd.Param[:])
-			if uint32(len(tunerValues)) < gainIdx {
+			if uint32(len(tunerValues)) > gainIdx {
 				gain := tunerValues[gainIdx]
 				fmt.Printf("Setting gain to %d (idx %d)\n", gain, gainIdx)
 				dev.SetGainDB(*channel, true, uint(gain))
 			} else {
-				fmt.Printf("Received gain index: %d but that's invalid. maximum is %d\n", len(tunerValues))
+				fmt.Printf("Received gain index: %d but that's invalid. maximum is %d\n", gainIdx, len(tunerValues))
 			}
 		case rtltcp.SetFrequency:
 			frequency := binary.BigEndian.Uint32(cmd.Param[:])

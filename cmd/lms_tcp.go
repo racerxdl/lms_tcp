@@ -40,6 +40,12 @@ func OnSamples(samples []complex64, _ int, _ uint64) {
 	}
 }
 
+func OnSamples16(samples []int16, _ int, _ uint64) {
+	if server != nil {
+		server.I16Broadcast(samples)
+	}
+}
+
 func main() {
 	flag.Parse()
 	addr := fmt.Sprintf("%s:%d", *listenAddress, *listenPort)
@@ -63,6 +69,10 @@ func main() {
 	dev := limedrv.Open(devices[*deviceIndex])
 	defer dev.Close()
 
+	dev.SetI16CallbackMode(true)
+	dev.SetI16Callback(OnSamples16)
+	dev.SetCallback(OnSamples)
+
 	dev.SetSampleRate(float64(*sampleRate), *oversampling)
 
 	if len(dev.RXChannels) <= *channel {
@@ -81,8 +91,6 @@ func main() {
 		SetLPF(float64(*lpf)).
 		EnableLPF().
 		SetCenterFrequency(106.3e6)
-
-	dev.SetCallback(OnSamples)
 
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)

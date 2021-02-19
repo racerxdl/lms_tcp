@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/quan-to/slog"
 	"github.com/racerxdl/go.fifo"
-	"github.com/racerxdl/qo100-dedrift/metrics"
 	"net"
 	"runtime"
 	"strings"
@@ -88,10 +87,27 @@ func (server *Server) Stop() {
 	}
 }
 
+func (server *Server) I16Broadcast(data []int16) {
+	if server.bufferFifo.Len()+len(data) > maxFifoLength {
+		// Discard data
+		_ = server.bufferFifo.NextN(len(data))
+	}
+
+	iqBytes := make([]byte, len(data))
+	for i := 0; i < len(data)/2; i++ {
+		rv := data[i*2] >> 8
+		iv := data[i*2+1] >> 8
+		iqBytes[i*2] = uint8(rv)
+		iqBytes[i*2+1] = uint8(iv)
+	}
+
+	server.bufferFifo.Add(iqBytes)
+}
+
 func (server *Server) ComplexBroadcast(data []complex64) {
-	if server.bufferFifo.Len() > maxFifoLength {
-		log.Error("TX Fifo full!")
-		return
+	if server.bufferFifo.Len()+len(data) > maxFifoLength {
+		// Discard data
+		_ = server.bufferFifo.NextN(len(data))
 	}
 
 	iqBytes := make([]byte, len(data)*2)
@@ -134,8 +150,7 @@ func (server *Server) broadcast(data []byte) {
 		payload := data[s:e]
 
 		for _, v := range server.connections {
-			n, _ := v.conn.Write(payload)
-			metrics.BytesOut.Add(float64(n))
+			_, _ = v.conn.Write(payload)
 		}
 	}
 	server.connectionLock.Unlock()
@@ -229,9 +244,6 @@ func (server *Server) handleRequest(conn net.Conn) {
 		server.onConnectCb(session.id, session.conn.RemoteAddr().String())
 	}
 
-	metrics.TotalConnections.Inc()
-	metrics.Connections.Inc()
-
 	for running {
 		_ = conn.SetReadDeadline(time.Now().Add(defaultReadTimeout))
 		n, err := conn.Read(buffer)
@@ -267,7 +279,6 @@ func (server *Server) handleRequest(conn net.Conn) {
 				continue
 			}
 			server.handlePacket(session, cmd)
-			metrics.BytesIn.Add(float64(n))
 		}
 	}
 	server.connectionLock.Lock()
@@ -280,6 +291,5 @@ func (server *Server) handleRequest(conn net.Conn) {
 	server.connectionLock.Unlock()
 	_ = conn.Close()
 
-	metrics.Connections.Dec()
 	clog.Info("Connection closed.")
 }

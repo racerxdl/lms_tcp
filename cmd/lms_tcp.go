@@ -26,6 +26,14 @@ var lpf = flag.Int("lpf", 2500000, "low pass filter (default 2500000)")
 
 var server *rtltcp.Server
 
+var tunerValues []int
+
+func init() {
+	for i := 0; i < 32; i++ {
+		tunerValues = append(tunerValues, i*4)
+	}
+}
+
 func OnSamples(samples []complex64, _ int, _ uint64) {
 	if server != nil {
 		server.ComplexBroadcast(samples)
@@ -89,7 +97,7 @@ func main() {
 	server = rtltcp.MakeRTLTCPServer(addr)
 	server.SetDongleInfo(rtltcp.DongleInfo{
 		TunerType:      rtltcp.RtlsdrTunerR820t,
-		TunerGainCount: 64,
+		TunerGainCount: uint32(len(tunerValues)),
 	})
 	server.SetOnCommand(func(sessionId string, cmd rtltcp.Command) bool {
 		switch cmd.Type {
@@ -108,7 +116,15 @@ func main() {
 			fmt.Printf("Setting gain to %d\n", gainU)
 			dev.SetGainDB(*channel, true, gainU)
 		case rtltcp.SetGainMode:
-
+		case rtltcp.SetTunerGainByIndex:
+			gainIdx := binary.BigEndian.Uint32(cmd.Param[:])
+			if uint32(len(tunerValues)) < gainIdx {
+				gain := tunerValues[gainIdx]
+				fmt.Printf("Setting gain to %d (idx %d)\n", gain, gainIdx)
+				dev.SetGainDB(*channel, true, uint(gain))
+			} else {
+				fmt.Printf("Received gain index: %d but that's invalid. maximum is %d\n", len(tunerValues))
+			}
 		case rtltcp.SetFrequency:
 			frequency := binary.BigEndian.Uint32(cmd.Param[:])
 			fmt.Printf("Setting frequency to %d\n", frequency)

@@ -1,0 +1,47 @@
+name: Go
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+
+  build-amd64:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+
+    - name: Set up Limesuite
+      run: |
+        sudo add-apt-repository -y ppa:myriadrf/drivers
+        sudo apt-get -y update
+        sudo apt-get install limesuite liblimesuite-dev
+
+    - name: Build
+      run: |
+        cd cmd
+        go build -o lms_tcp_amd64
+
+    - uses: actions/upload-artifact@v1
+      name: "Upload artifacts"
+      with:
+        name: lms_tcp_armhf
+        path: cmd/lms_tcp_amd64
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: Upload files to a GitHub release
+      uses: svenstaro/upload-release-action@2.2.0
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
+        file: cmd/lms_tcp_amd64
